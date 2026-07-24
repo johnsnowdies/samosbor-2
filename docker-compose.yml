@@ -128,14 +128,3 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-
-  # ── Image Cropper (из v1, для AI-картинок) ─────
-  image-cropper:
-    image: python:3-slim
-    command: sh -c "pip install flask pillow requests && python cropper.py"
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./cropper.py:/app/cropper.py
-    working_dir: /app
-    restart: unless-stopped

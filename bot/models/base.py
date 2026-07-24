@@ -1,8 +1,9 @@
 # ─────────────────────────────────────────────────
-# Samosbor AI Game v2 — SQLAlchemy Base + Session
+# Samosbor AI Game v2 — SQLAlchemy Base + Engine
 # ─────────────────────────────────────────────────
 
 import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -11,7 +12,10 @@ class Base(DeclarativeBase):
     pass
 
 
-# Синхронный engine (для Alembic, скриптов)
+# Все таблицы бота — в схеме samosbor (отдельно от Langfuse/public)
+Base.metadata.schema = "samosbor"
+
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     f"postgresql://{os.getenv('POSTGRES_USER', 'samosbor')}:"
