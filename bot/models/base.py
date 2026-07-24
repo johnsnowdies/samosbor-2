@@ -12,10 +12,6 @@ class Base(DeclarativeBase):
     pass
 
 
-# Все таблицы бота — в схеме samosbor (отдельно от Langfuse/public)
-Base.metadata.schema = "samosbor"
-
-
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     f"postgresql://{os.getenv('POSTGRES_USER', 'samosbor')}:"
