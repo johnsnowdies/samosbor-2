@@ -66,7 +66,10 @@ def load_memory(state: GameState, db: Session) -> GameState:
     # 2. Активная игровая сессия
     session = db.execute(
         select(GameSession)
-        .where(GameSession.user_id == user.id)
+        .where(
+            GameSession.user_id == user.id,
+            GameSession.game_over == False,
+        )
         .order_by(GameSession.created_at.desc())
     ).scalar_one_or_none()
 
