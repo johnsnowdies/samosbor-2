@@ -31,8 +31,6 @@ import sys
 import time
 from pathlib import Path
 from typing import Sequence
-from pgvector.sqlalchemy import Vector
-
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import Session
 
@@ -142,7 +140,7 @@ def save_chunks(db: Session, chunks: list[Chunk], vectors: list[list[float]],
             source=chunk.source,
             chunk_index=chunk.chunk_index,
             content=chunk.content,
-            embedding=Vector(vector),
+            embedding=vector,
             extra_meta={
                 "chapter": chunk.chapter,
                 "char_count": chunk.char_count,

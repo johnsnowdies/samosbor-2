@@ -19,10 +19,17 @@ from bot.models import Base  # noqa: E402
 
 target_metadata = Base.metadata
 
-# URL из .env, если задан
+# URL из .env, если задан, иначе собираем из POSTGRES_* переменных
 db_url = os.getenv("DATABASE_URL")
-if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+if not db_url:
+    db_url = (
+        f"postgresql://{os.getenv('POSTGRES_USER', 'samosbor')}:"
+        f"{os.getenv('POSTGRES_PASSWORD', 'changeme')}@"
+        f"{os.getenv('POSTGRES_HOST', 'localhost')}:"
+        f"{os.getenv('POSTGRES_PORT', '5432')}/"
+        f"{os.getenv('POSTGRES_DB', 'samosbor')}"
+    )
+config.set_main_option("sqlalchemy.url", db_url)
 
 
 def run_migrations_offline() -> None:
