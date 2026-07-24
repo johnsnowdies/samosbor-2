@@ -35,7 +35,7 @@ def base_state():
 class TestSuccessfulCall:
     """LLM возвращает ответ."""
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_returns_response(self, mock_get_client, base_state):
         """Ответ LLM сохраняется в state.llm_response."""
         # Настройка мока
@@ -61,7 +61,7 @@ class TestSuccessfulCall:
         assert result.llm_response is not None
         assert "вы в коридоре" in result.llm_response
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_llm_called_with_correct_args(self, mock_get_client, base_state):
         """Проверка, что LLM вызван с правильными параметрами."""
         mock_client = MagicMock()
@@ -84,7 +84,7 @@ class TestSuccessfulCall:
             max_tokens=LLM_MAX_TOKENS,
         )
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_response_stripped(self, mock_get_client, base_state):
         """Пробелы по краям ответа обрезаются."""
         mock_client = MagicMock()
@@ -106,7 +106,7 @@ class TestSuccessfulCall:
 class TestEmptyPrompt:
     """Пустой промпт — не вызываем LLM."""
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_empty_prompt_skips_llm(self, mock_get_client, base_state):
         """Промпт пустой — ошибка, LLM не вызывается."""
         base_state.prompt = None
@@ -122,7 +122,7 @@ class TestEmptyPrompt:
 class TestLLMError:
     """Ошибка при вызове LLM."""
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_api_error(self, mock_get_client, base_state):
         """Ошибка API — error в state, llm_response пустой."""
         mock_client = MagicMock()
@@ -135,7 +135,7 @@ class TestLLMError:
         assert "API timeout" in result.error
         assert result.llm_response is None
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_empty_response(self, mock_get_client, base_state):
         """LLM вернул пустой ответ — ошибка."""
         mock_client = MagicMock()
@@ -158,7 +158,7 @@ class TestConfiguration:
     """Проверка env-конфигурации LLM."""
 
     @patch("bot.langgraph.nodes.llm_call.OPENROUTER_API_KEY", "")
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_no_api_key(self, mock_get_client, base_state):
         """Без API ключа — ошибка при создании клиента."""
         mock_get_client.side_effect = ValueError(
@@ -176,7 +176,7 @@ class TestConfiguration:
 class TestStateIntegration:
     """llm_call не портит другие поля."""
 
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     def test_preserves_state(self, mock_get_client, base_state):
         """Другие поля не меняются."""
         mock_client = MagicMock()

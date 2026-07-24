@@ -51,8 +51,9 @@ def retrieve_rag(state: GameState, db: Session) -> GameState:
     logger.info("RAG: поиск по запросу '%s'", state.user_input[:100])
 
     try:
+        from bot.utils import clean_str
         # 1. Эмбединг запроса через Ollama
-        query_embedding = embed_text(state.user_input)
+        query_embedding = embed_text(clean_str(state.user_input))
 
         # 2. Поиск в pgvector по cosine similarity
         emb_str = json.dumps(query_embedding)

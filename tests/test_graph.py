@@ -8,7 +8,7 @@
 Проверяют:
   - Структуру графа (ноды, рёбра)
   - Маршрутизацию (/start vs обычное сообщение)
-  - Обработку ошибок (has_error)
+  - Обработку ошибок (роутинг)
   - Компиляцию
 """
 
@@ -17,11 +17,13 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from langgraph.graph import END
 
 from bot.langgraph.graph import (
     build_game_graph,
-    has_error,
     is_start_command,
+    route_after_generate_world,
+    route_after_guardrails,
 )
 from bot.schemas.game import GameState
 
@@ -55,17 +57,22 @@ class TestRouting:
 # ── Обработка ошибок ────────────────────────────
 
 class TestErrorHandling:
-    """has_error проверяет state.error."""
+    """Роутеры проверяют state.error."""
 
-    def test_no_error(self):
-        """Без ошибки — continue."""
+    def test_no_error_continues(self):
+        """Без ошибки — идёт к следующей ноде."""
         state = GameState(chat_id=1, user_input="тест")
-        assert has_error(state) == "continue"
+        assert route_after_guardrails(state) == "validate_action"
 
-    def test_with_error(self):
-        """С ошибкой — end."""
+    def test_error_ends(self):
+        """С ошибкой — END."""
         state = GameState(chat_id=1, user_input="тест", error="ошибка")
-        assert has_error(state) == "end"
+        assert route_after_guardrails(state) is END
+
+    def test_generate_world_error(self):
+        """generate_world с ошибкой → END."""
+        state = GameState(chat_id=1, user_input="/start", error="ошибка")
+        assert route_after_generate_world(state) is END
 
 
 # ── Структура графа ─────────────────────────────
@@ -83,13 +90,17 @@ class TestGraphStructure:
         graph = build_game_graph()
         expected_nodes = [
             "start_game",
+            "generate_world",
             "guardrails",
+            "validate_action",
             "memory",
             "rag",
             "build_prompt",
             "llm_call",
             "parse",
             "update_state",
+            "generate_locations",
+            "fact_check",
             "npc_simulate",
         ]
         for node in expected_nodes:
@@ -102,7 +113,7 @@ class TestLightIntegration:
     """Лёгкая проверка что граф не падает с моками."""
 
     @patch("bot.models.base.SessionLocal")
-    @patch("bot.langgraph.nodes.llm_call._get_client")
+    @patch("openai.OpenAI")
     @patch("bot.langgraph.nodes.rag.embed_text")
     def test_graph_runs_regular_message(self, mock_embed, mock_llm, mock_db, capsys):
         """Обычное сообщение проходит весь граф."""
@@ -120,7 +131,7 @@ class TestLightIntegration:
         mock_client.chat.completions.create.return_value = mock_response
         mock_llm.return_value = mock_client
 
-        # Мок DB — все запросы возвращают None
+        # Мок DB
         mock_db_session = MagicMock()
         mock_db.return_value = mock_db_session
         mock_db_session.execute.return_value.scalar_one_or_none.side_effect = [
@@ -139,29 +150,39 @@ class TestLightIntegration:
         assert result.get("error") is not None
 
     @patch("bot.models.base.SessionLocal")
-    def test_graph_runs_start_command(self, mock_db, capsys):
-        """/start проходит через start_game."""
+    @patch("openai.OpenAI")
+    def test_graph_runs_start_command(self, mock_llm, mock_db, capsys):
+        """/start проходит через start_game и generate_world (с моками)."""
         mock_db_session = MagicMock()
         mock_db.return_value = mock_db_session
         mock_db_session.execute.return_value.scalar_one_or_none.side_effect = [
             None, None,  # user not found, old session not found
         ]
+        # Мок для всех get/save операций
+        mock_db_session.get.return_value = None
+        mock_db_session.query.return_value.filter.return_value.first.return_value = None
+        mock_db_session.add.return_value = None
+        mock_db_session.flush.return_value = None
+        mock_db_session.commit.return_value = None
 
-        # После start_game — идёт llm_call. Мокаем LLM.
-        with patch("bot.langgraph.nodes.llm_call._get_client") as mock_llm:
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_choice = MagicMock()
-            mock_choice.message.content = (
-                '{"text": "начало", "actions": ["идти"], "game_over": false}'
-            )
-            mock_response.choices = [mock_choice]
-            mock_response.usage = MagicMock()
-            mock_client.chat.completions.create.return_value = mock_response
-            mock_llm.return_value = mock_client
+        # Мок для generate_world (возвращает JSON + не падает)
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = (
+            '{"player_name": "Тест", "start_location": "Комната", '
+            '"locations": [{"name": "Комната", "description": "", "floor": "1"}], '
+            '"floors": [{"name": "1", "danger_level": 0.3}], '
+            '"connections": [], "items": [], "npcs": [], "npc_relations": [], '
+            '"quests": []}'
+        )
+        mock_response.choices = [mock_choice]
+        mock_response.usage = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_llm.return_value = mock_client
 
-            graph = build_game_graph()
-            state = GameState(chat_id=12345, user_input="/start")
-            result = graph.invoke(state)
+        graph = build_game_graph()
+        state = GameState(chat_id=12345, user_input="/start")
+        result = graph.invoke(state)
 
         assert result is not None

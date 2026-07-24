@@ -25,6 +25,7 @@ from tenacity import (
 )
 
 from bot.schemas.game import GameState
+from bot.utils import get_openai_client
 
 load_dotenv()
 
@@ -42,29 +43,6 @@ LLM_MODEL = os.getenv("LLM_MODEL", "deepseek/deepseek-v4-flash")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
-
-# ── Клиент ───────────────────────────────────────
-
-_client: OpenAI | None = None
-
-
-def _get_client() -> OpenAI:
-    """Создаёт/возвращает кешированный OpenAI-клиент для OpenRouter."""
-    global _client
-    if _client is not None:
-        return _client
-
-    if not OPENROUTER_API_KEY:
-        raise ValueError(
-            "OPENROUTER_API_KEY не задан. Укажите его в .env"
-        )
-
-    _client = OpenAI(
-        api_key=OPENROUTER_API_KEY,
-        base_url=OPENROUTER_BASE_URL,
-    )
-    logger.info("LLM клиент создан: модель %s", LLM_MODEL)
-    return _client
 
 
 # ── Retry ─────────────────────────────────────────
@@ -94,7 +72,10 @@ def _call_llm(prompt: str) -> str:
     Raises:
         ValueError: если ответ пустой
     """
-    client = _get_client()
+    from bot.utils import clean_str
+    prompt = clean_str(prompt)
+
+    client = get_openai_client()
 
     response = client.chat.completions.create(
         model=LLM_MODEL,

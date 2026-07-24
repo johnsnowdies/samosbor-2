@@ -107,8 +107,12 @@ def load_memory(state: GameState, db: Session) -> GameState:
             state.current_location_id = location.id
             state.current_location_name = location.name
 
-    # 5. NPC в той же локации
+    # 5. NPC в той же локации + описание локации
     if state.current_location_id:
+        loc_obj = db.get(Location, state.current_location_id)
+        if loc_obj:
+            state.extra["location_description"] = loc_obj.description or ""
+
         npcs_in_location = db.execute(
             select(NPC)
             .join(Person, NPC.person_id == Person.id)
@@ -129,7 +133,44 @@ def load_memory(state: GameState, db: Session) -> GameState:
             for npc in npcs_in_location
         ]
 
-    # 6. История диалога (последние N сообщений)
+    # 6. Инвентарь игрока
+    if state.player_id:
+        from bot.models.item import Item
+        items = db.execute(
+            select(Item).where(
+                Item.owner_id == state.player_id,
+                Item.session_id == session.id,
+            )
+        ).scalars().all()
+        state.extra["player_inventory"] = [item.name for item in items]
+
+    # 7. Социальные отношения между NPC в этой локации
+    npcs_in_loc = state.extra.get("npcs_in_location", [])
+    if npcs_in_loc and len(npcs_in_loc) > 1:
+        from bot.models.social import SocialRelation
+        npc_ids = [n["id"] for n in npcs_in_loc]
+        relations = db.execute(
+            select(SocialRelation).where(
+                SocialRelation.session_id == session.id,
+                SocialRelation.from_person_id.in_(npc_ids),
+                SocialRelation.to_person_id.in_(npc_ids),
+            )
+        ).scalars().all()
+
+        if relations:
+            npc_name_map = {n["id"]: n["name"] for n in npcs_in_loc}
+            formatted = []
+            for r in relations:
+                from_name = npc_name_map.get(r.from_person_id, f"NPC #{r.from_person_id}")
+                to_name = npc_name_map.get(r.to_person_id, f"NPC #{r.to_person_id}")
+                formatted.append({
+                    "from": from_name,
+                    "to": to_name,
+                    "affinity": r.affinity,
+                })
+            state.extra["npc_relations"] = formatted
+
+    # 8. История диалога (последние N сообщений)
     conversations = db.execute(
         select(Conversation)
         .where(Conversation.session_id == session.id)

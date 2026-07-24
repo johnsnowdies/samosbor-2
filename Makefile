@@ -2,7 +2,7 @@
 # Samosbor AI Game v2 — Makefile
 # ─────────────────────────────────────────────────
 
-.PHONY: help up down build logs shell migrate test lint clean load-lore search-lore
+.PHONY: help up down build logs shell migrate test lint cli ollama-models-list clean load-lore search-lore
 
 help:
 	@echo "Samosbor AI Game v2 — Makefile"
@@ -12,6 +12,8 @@ help:
 	@echo "  build      — Пересобрать образ бота"
 	@echo "  logs       — Хвост логов бота"
 	@echo "  shell      — Bash внутрь контейнера бота"
+	@echo "  cli        — Интерактивный CLI для тестирования игры"
+	@echo "  ollama-models-list — Список моделей в Ollama"
 	@echo "  migrate    — Запустить Alembic миграции"
 	@echo "  test       — Запустить тесты"
 	@echo "  lint       — Линтинг (ruff)"
@@ -35,6 +37,16 @@ logs:
 
 shell:
 	docker compose exec bot bash
+
+# ── CLI для тестирования ────────────────────────
+
+cli:
+	docker compose exec -it bot python cli.py $(ARGS)
+
+# ── Ollama ────────────────────────────────────────
+
+ollama-models-list:
+	docker compose exec bot python scripts/ollama_models_list.py
 
 # ── Данные ─────────────────────────────────────
 

@@ -36,10 +36,15 @@ START_PROMPT = """Ты — мастер игры «Самосбор». Сген�
 Игрок только что вошёл в мир Гигахрущёвки. Твоя задача:
 1. Создать персонажа игрока: имя, внешность, предыстория (2-3 предложения)
 2. Описать стартовую локацию: этаж, комната, обстановка
-3. Дать первый квест
-4. Описать, что игрок видит, слышит и чувствует
+3. Создать 1-3 NPC в этой же локации
+4. Дать стартовые предметы и первый квест
+5. Описать, что игрок видит, слышит и чувствует
 
 ## JSON ответ
+Ответ должен содержать два раздела:
+- `world` — данные для создания мира в БД (заполняется только при /start)
+- Все остальные поля как обычно
+
 ```json
 {
   "text": "Вступительное описание — кто ты, где ты, что вокруг. 3-5 предложений.",
@@ -48,7 +53,36 @@ START_PROMPT = """Ты — мастер игры «Самосбор». Сген�
   "quests": ["первый квест"],
   "location": "название стартовой локации",
   "game_over": false,
-  "image_prompt": "описание стартовой сцены на английском"
+  "image_prompt": "описание стартовой сцены на английском",
+  "world": {
+    "player_name": "Имя персонажа",
+    "player_bio": "Предыстория (2-3 предложения)",
+    "player_appearance": "Внешность",
+    "player_personality": "Характер",
+    "player_habits": "Привычки",
+    "floors": [
+      {"name": "Название этажа", "danger_level": 0.3, "is_contaminated": false}
+    ],
+    "start_location": "Название стартовой локации",
+    "start_location_description": "Описание локации",
+    "items": ["предмет 1", "предмет 2"],
+    "npcs": [
+      {
+        "name": "Имя NPC",
+        "bio": "Кто это",
+        "personality": "Характер",
+        "appearance": "Внешность",
+        "habits": "Привычки",
+        "faction": "Фракция (KPGH, Likvidator, нейтрал, культ)",
+        "danger_level": 0.0,
+        "location": "Название локации где находится"
+      }
+    ],
+    "npc_relations": [
+      {"npc_name_from": "NPC 1", "npc_name_to": "NPC 2", "affinity": 0.5}
+    ],
+    "quests": ["первый квест"]
+  }
 }
 ```"""
 
@@ -115,14 +149,13 @@ def start_game(state: GameState, db: Session) -> GameState:
     db.refresh(new_session)
 
     state.session_id = new_session.id
+    state.is_new_game = True
     state.game_over = False
     state.current_cycle = 1
     state.current_time = "08:00"
     state.player_id = None
 
-    # 4. Ставим специальный промпт для генерации начала
-    state.prompt = START_PROMPT
-
+    # Не ставим prompt — generate_world сгенерирует мир, а build_prompt соберёт нарратив
     logger.info("Start game: создана новая сессия id=%s", new_session.id)
 
     return state

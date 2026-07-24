@@ -87,10 +87,24 @@ def _normalize_json(data: dict[str, Any]) -> dict[str, Any]:
 
     - Приводит game_over к bool
     - Приводит пустые списки к None
+    - npc_actions: строки → объекты NPCAction (npc_id=0)
     """
     # game_over может быть строкой "false"/"true"
     if "game_over" in data and isinstance(data["game_over"], str):
         data["game_over"] = data["game_over"].lower() in ("true", "yes", "да")
+
+    # npc_actions может быть массивом строк вместо объектов
+    if "npc_actions" in data and isinstance(data["npc_actions"], list):
+        normalized = []
+        for item in data["npc_actions"]:
+            if isinstance(item, str):
+                # Строка → NPCAction без npc_id
+                normalized.append({"npc_id": 0, "action": item})
+            elif isinstance(item, dict):
+                normalized.append(item)
+            else:
+                normalized.append({"npc_id": 0, "action": str(item)})
+        data["npc_actions"] = normalized
 
     return data
 

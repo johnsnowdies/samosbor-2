@@ -182,8 +182,8 @@ class TestBannedUser:
 class TestStartPrompt:
     """Промпт для старта игры."""
 
-    def test_start_prompt_set(self, mock_db, base_state):
-        """После start_game в state.prompt установлен START_PROMPT."""
+    def test_start_prompt_not_set(self, mock_db, base_state):
+        """После start_game prompt не установлен — его соберёт build_prompt."""
         mock_user = make_mock_user()
         mock_db.execute.return_value.scalar_one_or_none.side_effect = [
             mock_user,
@@ -192,9 +192,8 @@ class TestStartPrompt:
 
         result = start_game(base_state, mock_db)
 
-        assert result.prompt is not None
-        assert "Новая игра" in result.prompt
-        assert "Самосбор" in result.prompt
+        assert result.prompt is None, "prompt теперь собирает build_prompt"
+        assert result.is_new_game is True, "is_new_game должен быть True после /start"
 
 
 # ── Состояние ─────────────────────────────────────
