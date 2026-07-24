@@ -2,7 +2,7 @@
 # Samosbor AI Game v2 — Makefile
 # ─────────────────────────────────────────────────
 
-.PHONY: help up down build logs shell migrate test lint clean
+.PHONY: help up down build logs shell migrate test lint clean load-lore search-lore
 
 help:
 	@echo "Samosbor AI Game v2 — Makefile"
@@ -15,6 +15,8 @@ help:
 	@echo "  migrate    — Запустить Alembic миграции"
 	@echo "  test       — Запустить тесты"
 	@echo "  lint       — Линтинг (ruff)"
+	@echo "  load-lore  — Загрузить лор в векторную БД (RAG)"
+	@echo "  search-lore QUERY=текст — Поиск по лору"
 	@echo "  clean      — Очистить data/ (сброс БД)"
 
 # ── Docker Compose ───────────────────────────────
@@ -46,7 +48,30 @@ clean:
 migrate:
 	docker compose exec bot alembic upgrade head
 
-# ── Тесты / Линтинг ────────────────────────────
+# ── RAG ─────────────────────────────────────────
+
+# Запускает ollama, ждёт готовности, грузит лор, останавливает ollama
+load-lore:
+	docker compose --profile rag up -d ollama
+	@echo "⏳ Ожидание Ollama..."
+	@for i in $$(seq 1 30); do \
+		curl -s http://localhost:11434/api/tags >/dev/null 2>&1 && break; \
+		sleep 1; \
+	done
+	docker compose exec ollama ollama pull bge-m3 2>/dev/null || true
+	docker compose exec -e EMBEDDING_PROVIDER=ollama bot python -m bot.rag.loader
+	docker compose stop ollama
+
+# Поиск по лору (ollama нужен только для эмбединга запроса)
+search-lore:
+	docker compose --profile rag up -d ollama
+	@echo "⏳ Ожидание Ollama..."
+	@for i in $$(seq 1 30); do \
+		curl -s http://localhost:11434/api/tags >/dev/null 2>&1 && break; \
+		sleep 1; \
+	done
+	docker compose exec -e EMBEDDING_PROVIDER=ollama bot python -m bot.rag.loader --search "$(QUERY)"
+	docker compose stop ollama
 
 test:
 	docker compose exec bot pytest

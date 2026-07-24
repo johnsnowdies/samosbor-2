@@ -2,11 +2,16 @@
 # DocumentChunk — чанки лора для RAG (pgvector)
 # ─────────────────────────────────────────────────
 
+import os
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Index, Integer, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.models.base import Base
+
+# Размерность эмбедингов: 1024 для bge-m3 (Ollama), 1536 для text-embedding-3-small (OpenRouter)
+EMBEDDING_DIMS = int(os.getenv("EMBEDDING_DIMS", "1024"))
 
 
 class DocumentChunk(Base):
@@ -23,7 +28,7 @@ class DocumentChunk(Base):
         Text, comment="Текст чанка"
     )
     embedding: Mapped[Vector] = mapped_column(
-        Vector(1536), comment="Эмбединг (размерность зависит от модели)"
+        Vector(EMBEDDING_DIMS), comment="Эмбединг"
     )
     extra_meta: Mapped[dict] = mapped_column(
         JSON, default=dict, comment="Дополнительные метаданные"

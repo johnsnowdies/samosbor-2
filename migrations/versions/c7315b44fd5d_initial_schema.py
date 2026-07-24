@@ -29,7 +29,7 @@ def upgrade() -> None:
     sa.Column('source', sa.Text(), nullable=False, comment='Название книги / фанфика'),
     sa.Column('chunk_index', sa.Integer(), nullable=False, comment='Номер чанка в документе'),
     sa.Column('content', sa.Text(), nullable=False, comment='Текст чанка'),
-    sa.Column('embedding', Vector(dim=1536), nullable=False, comment='Эмбединг (размерность зависит от модели)'),
+    sa.Column('embedding', Vector(dim=1024), nullable=False, comment='Эмбединг (1024 для bge-m3, 1536 для text-embedding-3-small)'),
     sa.Column('extra_meta', sa.JSON(), nullable=False, comment='Дополнительные метаданные'),
     sa.PrimaryKeyConstraint('id')
     )
