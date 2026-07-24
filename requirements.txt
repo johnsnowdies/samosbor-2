@@ -1,0 +1,42 @@
+# ── API ─────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+httpx>=0.28.0
+
+# ── Telegram ────────────────────────
+python-telegram-bot>=21.1.1
+
+# ── Database ────────────────────────
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30.0
+psycopg2-binary>=2.9.10
+alembic>=1.14.0
+pgvector>=0.3.6
+
+# ── Redis ───────────────────────────
+redis[hiredis]>=5.2.0
+
+# ── Temporal ────────────────────────
+temporalio>=1.7.0
+
+# ── LangGraph ───────────────────────
+langgraph>=0.2.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+
+# ── Langfuse ────────────────────────
+langfuse>=2.45.0
+
+# ── AI / OpenRouter ─────────────────
+openai>=1.50.0
+
+# ── Utils ───────────────────────────
+python-dotenv>=1.0.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+sentry-sdk>=2.14.0
+tenacity>=9.0.0
+dirtyjson>=1.0.8  # legacy, v1 compatibility
+
+# ── Dev ─────────────────────────────
+# mypy, ruff, pytest — добавить при необходимости

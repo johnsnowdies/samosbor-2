@@ -1,0 +1,4 @@
+# Temporal dynamic config
+limit.maxIDLength:
+  - value: 1000
+    constraints: {}
