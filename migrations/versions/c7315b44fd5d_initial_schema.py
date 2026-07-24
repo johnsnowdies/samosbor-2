@@ -157,7 +157,7 @@ def upgrade() -> None:
     op.create_table('npcs',
     sa.Column('person_id', sa.Integer(), nullable=False),
     sa.Column('session_id', sa.Integer(), nullable=False, comment='Игровая сессия'),
-    sa.Column('faction', sa.String(length=64), nullable=True, comment='Фракция (КПГХ, Ликвидатор...)'),
+    sa.Column('faction', sa.String(length=64), nullable=True, comment='Фракция'),
     sa.Column('danger_level', sa.Float(), nullable=False, comment='0.0 - 1.0'),
     sa.ForeignKeyConstraint(['person_id'], ['persons.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['session_id'], ['game_sessions.id'], ondelete='CASCADE'),

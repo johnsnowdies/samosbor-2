@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from bot.models.player import Player
     from bot.models.npc import NPC
     from bot.models.floor import Floor
-    from bot.models.location import Location
+    from bot.models.location import Location, LocationConnection
     from bot.models.item import Item
     from bot.models.task import Task
     from bot.models.social import SocialRelation, InteractionHistory, LocationVisitHistory
@@ -55,48 +55,53 @@ class GameSession(Base):
 
     # Игрок (главный персонаж этой сессии)
     player: Mapped["Player"] = relationship(
-        "Player", back_populates="session", uselist=False
+        "Player", back_populates="session", uselist=False, passive_deletes=True
     )
 
     # NPC
     npcs: Mapped[list["NPC"]] = relationship(
-        "NPC", back_populates="session"
+        "NPC", back_populates="session", passive_deletes=True
     )
 
     # Локации и этажи
     floors: Mapped[list["Floor"]] = relationship(
-        "Floor", back_populates="session"
+        "Floor", back_populates="session", passive_deletes=True
     )
     locations: Mapped[list["Location"]] = relationship(
-        "Location", back_populates="session"
+        "Location", back_populates="session", passive_deletes=True
     )
 
     # Предметы
     items: Mapped[list["Item"]] = relationship(
-        "Item", back_populates="session"
+        "Item", back_populates="session", passive_deletes=True
     )
 
     # Задачи
     tasks: Mapped[list["Task"]] = relationship(
-        "Task", back_populates="session"
+        "Task", back_populates="session", passive_deletes=True
     )
 
     # Социальный граф
     social_relations: Mapped[list["SocialRelation"]] = relationship(
-        "SocialRelation", back_populates="session"
+        "SocialRelation", back_populates="session", passive_deletes=True
     )
 
     # История
     interactions: Mapped[list["InteractionHistory"]] = relationship(
-        "InteractionHistory", back_populates="session"
+        "InteractionHistory", back_populates="session", passive_deletes=True
     )
     location_visits: Mapped[list["LocationVisitHistory"]] = relationship(
-        "LocationVisitHistory", back_populates="session"
+        "LocationVisitHistory", back_populates="session", passive_deletes=True
     )
 
     # История чата
     conversations: Mapped[list["Conversation"]] = relationship(
-        "Conversation", back_populates="session"
+        "Conversation", back_populates="session", passive_deletes=True
+    )
+
+    # Связи локаций
+    location_connections: Mapped[list["LocationConnection"]] = relationship(
+        "LocationConnection", back_populates="session", passive_deletes=True
     )
 
     def __repr__(self) -> str:

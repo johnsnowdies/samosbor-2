@@ -78,6 +78,10 @@ class LocationConnection(Base):
     to_location_id: Mapped[int] = mapped_column(
         ForeignKey("locations.id", ondelete="CASCADE"), primary_key=True
     )
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("game_sessions.id", ondelete="CASCADE"),
+        comment="Игровая сессия",
+    )
     description: Mapped[str] = mapped_column(
         Text, default="", comment="Описание перехода"
     )
@@ -90,6 +94,9 @@ class LocationConnection(Base):
     )
 
     # Связи
+    session: Mapped["GameSession"] = relationship(
+        "GameSession", back_populates="location_connections"
+    )
     from_location: Mapped["Location"] = relationship(
         "Location",
         foreign_keys=[from_location_id],

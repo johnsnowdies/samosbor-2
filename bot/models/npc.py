@@ -2,10 +2,16 @@
 # NPC — неигровой персонаж
 # ─────────────────────────────────────────────────
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bot.models.base import Base
+
+if TYPE_CHECKING:
+    from bot.models.person import Person
+    from bot.models.session import GameSession
 
 
 class NPC(Base):
@@ -21,7 +27,7 @@ class NPC(Base):
         comment="Игровая сессия",
     )
     faction: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, comment="Фракция (КПГХ, Ликвидатор...)"
+        String(64), nullable=True, comment="Фракция"
     )
     danger_level: Mapped[float] = mapped_column(
         Float, default=0.0, comment="0.0 - 1.0"
@@ -29,7 +35,7 @@ class NPC(Base):
 
     # Связи
     person: Mapped["Person"] = relationship(
-        "Person", backref="npc", uselist=False
+        "Person", back_populates="npc", uselist=False
     )
     session: Mapped["GameSession"] = relationship(
         "GameSession", back_populates="npcs"

@@ -2,10 +2,16 @@
 # Player — игровой персонаж (главный герой сессии)
 # ─────────────────────────────────────────────────
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bot.models.base import Base
+
+if TYPE_CHECKING:
+    from bot.models.person import Person
+    from bot.models.session import GameSession
 
 
 class Player(Base):
@@ -23,7 +29,7 @@ class Player(Base):
 
     # Связи
     person: Mapped["Person"] = relationship(
-        "Person", backref="player", uselist=False
+        "Person", back_populates="player", uselist=False
     )
     session: Mapped["GameSession"] = relationship(
         "GameSession", back_populates="player"

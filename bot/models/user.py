@@ -42,7 +42,7 @@ class User(Base):
 
     # Связи
     game_sessions: Mapped[list["GameSession"]] = relationship(
-        "GameSession", back_populates="user"
+        "GameSession", back_populates="user", passive_deletes=True
     )
 
     def __repr__(self) -> str:

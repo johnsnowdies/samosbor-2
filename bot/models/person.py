@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from bot.models.task import Task
     from bot.models.social import SocialRelation, InteractionHistory
     from bot.models.location import LocationVisitHistory
+    from bot.models.player import Player
+    from bot.models.npc import NPC
 
 
 class Person(Base):
@@ -88,6 +90,14 @@ class Person(Base):
         "LocationVisitHistory",
         foreign_keys="LocationVisitHistory.person_id",
         back_populates="person",
+    )
+
+    # Обратные связи: Player и NPC (one-to-one)
+    player: Mapped[Optional["Player"]] = relationship(
+        "Player", back_populates="person", uselist=False
+    )
+    npc: Mapped[Optional["NPC"]] = relationship(
+        "NPC", back_populates="person", uselist=False
     )
 
     def __repr__(self) -> str:

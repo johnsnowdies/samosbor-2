@@ -39,4 +39,5 @@ tenacity>=9.0.0
 dirtyjson>=1.0.8  # legacy, v1 compatibility
 
 # ── Dev ─────────────────────────────
+pytest
 # mypy, ruff, pytest — добавить при необходимости

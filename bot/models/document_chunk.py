@@ -30,7 +30,12 @@ class DocumentChunk(Base):
     )
 
     __table_args__ = (
-        Index("idx_document_chunks_embedding", embedding, postgresql_using="hnsw"),
+        Index(
+            "idx_document_chunks_embedding",
+            embedding,
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
         Index("idx_document_chunks_source", source),
     )
 
