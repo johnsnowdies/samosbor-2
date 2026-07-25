@@ -62,7 +62,8 @@ def route_after_generate_world(state: GameState) -> str:
 def route_after_guardrails(state: GameState) -> str:
     if state.error is not None:
         return END
-    return "validate_action"
+    return "memory"
+    #return "validate_action"
 
 
 def route_after_validate(state: GameState) -> str:
@@ -94,13 +95,15 @@ def route_after_update(state: GameState) -> str:
         return END
     if state.location_changed and state.current_location_id is not None:
         return "generate_locations"
-    return "fact_check"
+    return "npc_simulate"
+    #return "fact_check"
 
 
 def route_after_gen_locations(state: GameState) -> str:
     if state.error is not None:
         return END
-    return "fact_check"
+    return "npc_simulate"
+    #return "fact_check"
 
 
 def route_after_fact_check(state: GameState) -> str:
@@ -144,7 +147,7 @@ def build_game_graph() -> StateGraph:
 
     # ── Путь обычного сообщения ─────────────────
     workflow.add_conditional_edges("guardrails", route_after_guardrails)
-    workflow.add_conditional_edges("validate_action", route_after_validate)
+    #workflow.add_conditional_edges("validate_action", route_after_validate)
     workflow.add_edge("memory", "rag")
     workflow.add_edge("rag", "build_prompt")
 
@@ -154,7 +157,7 @@ def build_game_graph() -> StateGraph:
     workflow.add_conditional_edges("parse", route_after_parse)
     workflow.add_conditional_edges("update_state", route_after_update)
     workflow.add_conditional_edges("generate_locations", route_after_gen_locations)
-    workflow.add_conditional_edges("fact_check", route_after_fact_check)
+    #workflow.add_conditional_edges("fact_check", route_after_fact_check)
     workflow.add_edge("npc_simulate", END)
 
     return workflow.compile()

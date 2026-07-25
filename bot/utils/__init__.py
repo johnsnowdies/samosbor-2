@@ -34,29 +34,15 @@ def clean_dict(data: dict) -> dict:
     return result
 
 
-# ── OpenAI клиент с Langfuse ───────────────────────
+# ── OpenAI клиент (без Langfuse, трейсинг вручную в llm_call) ──
 
 def get_openai_client():
     """
-    Создаёт OpenAI-клиент. Если Langfuse настроен — использует
-    drop-in замену langfuse.openai.OpenAI для автоматического трейсинга.
+    Создаёт обычный OpenAI-клиент.
+    Langfuse трейсинг делается вручную в llm_call.py через Langfuse SDK.
     """
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
-    pk = os.getenv("LANGFUSE_PUBLIC_KEY", "")
-    sk = os.getenv("LANGFUSE_SECRET_KEY", "")
-
-    # Если Langfuse настроен — используем его drop-in OpenAI
-    if pk and sk:
-        try:
-            from langfuse.openai import OpenAI
-            client = OpenAI(api_key=api_key, base_url=base_url)
-            logger.info("Langfuse: трейсинг OpenAI включён")
-            return client
-        except Exception as e:
-            logger.warning("Langfuse: ошибка: %s, использую обычный OpenAI", e)
-
-    # Fallback: обычный OpenAI
     from openai import OpenAI
     return OpenAI(api_key=api_key, base_url=base_url)

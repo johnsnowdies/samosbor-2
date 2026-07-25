@@ -34,7 +34,7 @@ from tenacity import (
 )
 
 from bot.schemas.game import GameState, ValidationResult
-from bot.utils import get_openai_client
+from bot.utils.langfuse_trace import trace_llm_call
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ _retry_decorator = retry(
 @_retry_decorator
 def _call_llm(prompt: str) -> str:
     """Быстрый дешёвый LLM-запрос на валидацию."""
-    client = get_openai_client()
+    client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
     response = client.chat.completions.create(
         model=os.getenv("LLM_MODEL", "deepseek/deepseek-v4-flash"),
         messages=[{"role": "user", "content": prompt}],

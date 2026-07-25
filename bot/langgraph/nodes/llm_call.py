@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────────
 
 """
-Вызов LLM (DeepSeek V4 Flash через OpenRouter).
+Вызов LLM (DeepSeek V4 Flash через OpenRouter) с трейсингом в Langfuse.
 
 Принимает собранный промпт из build_prompt,
 отправляет в OpenRouter, сохраняет ответ в state.llm_response.
@@ -25,7 +25,7 @@ from tenacity import (
 )
 
 from bot.schemas.game import GameState
-from bot.utils import get_openai_client
+from bot.utils.langfuse_trace import trace_llm_call
 
 load_dotenv()
 
@@ -38,11 +38,8 @@ OPENROUTER_BASE_URL = os.getenv(
     "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
 )
 LLM_MODEL = os.getenv("LLM_MODEL", "deepseek/deepseek-v4-flash")
-
-# Параметры генерации
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
-
 
 
 # ── Retry ─────────────────────────────────────────
@@ -59,23 +56,20 @@ _retry_decorator = retry(
 # ── Call LLM ──────────────────────────────────────
 
 @_retry_decorator
-def _call_llm(prompt: str) -> str:
+def _call_llm(prompt: str) -> tuple[str, dict | None]:
     """
-    Отправляет запрос в OpenRouter и возвращает текст ответа.
+    Отправляет запрос в OpenRouter и возвращает текст ответа + usage.
 
     Args:
         prompt: Полный промпт для LLM
 
     Returns:
-        Текст ответа LLM
-
-    Raises:
-        ValueError: если ответ пустой
+        (текст ответа, usage dict или None)
     """
     from bot.utils import clean_str
     prompt = clean_str(prompt)
 
-    client = get_openai_client()
+    client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
 
     response = client.chat.completions.create(
         model=LLM_MODEL,
@@ -88,14 +82,21 @@ def _call_llm(prompt: str) -> str:
     if not content or not content.strip():
         raise ValueError("LLM вернул пустой ответ")
 
-    logger.info(
-        "LLM ответ получен: %d токенов (input=%d, output=%d)",
-        response.usage.total_tokens if response.usage else 0,
-        response.usage.prompt_tokens if response.usage else 0,
-        response.usage.completion_tokens if response.usage else 0,
-    )
+    usage = None
+    if response.usage:
+        usage = {
+            "input": response.usage.prompt_tokens or 0,
+            "output": response.usage.completion_tokens or 0,
+            "unit": "TOKENS",
+        }
+        logger.info(
+            "LLM ответ получен: %d токенов (input=%d, output=%d)",
+            response.usage.total_tokens or 0,
+            response.usage.prompt_tokens or 0,
+            response.usage.completion_tokens or 0,
+        )
 
-    return content.strip()
+    return content.strip(), usage
 
 
 # ── Node ──────────────────────────────────────────
@@ -103,6 +104,7 @@ def _call_llm(prompt: str) -> str:
 def call_llm(state: GameState) -> GameState:
     """
     Отправляет промпт в LLM и сохраняет ответ.
+    Langfuse трейсинг через trace_llm_call.
 
     Args:
         state: GameState с заполненным prompt
@@ -120,12 +122,24 @@ def call_llm(state: GameState) -> GameState:
         state.chat_id, len(state.prompt),
     )
 
-    try:
-        response = _call_llm(state.prompt)
-        state.llm_response = response
-        logger.debug("LLM: ответ получен (%d символов)", len(response))
-    except Exception as e:
-        state.error = f"Ошибка при вызове LLM: {str(e)}"
-        logger.error("LLM: ошибка для chat_id=%s: %s", state.chat_id, str(e))
+    with trace_llm_call(
+        chat_id=state.chat_id,
+        cycle=state.current_cycle,
+        location=state.current_location_name,
+        model=LLM_MODEL,
+        input_prompt=state.prompt,
+        temperature=LLM_TEMPERATURE,
+        max_tokens=LLM_MAX_TOKENS,
+    ) as ctx:
+
+        try:
+            response, usage = _call_llm(state.prompt)
+            state.llm_response = response
+            ctx.set_output(response, usage)
+            logger.debug("LLM: ответ получен (%d символов)", len(response))
+        except Exception as e:
+            state.error = f"Ошибка при вызове LLM: {str(e)}"
+            logger.error("LLM: ошибка для chat_id=%s: %s", state.chat_id, str(e))
+            ctx.set_error(str(e))
 
     return state

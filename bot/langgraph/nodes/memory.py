@@ -71,6 +71,7 @@ def load_memory(state: GameState, db: Session) -> GameState:
             GameSession.game_over == False,
         )
         .order_by(GameSession.created_at.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
     if session is None:
